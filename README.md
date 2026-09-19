@@ -1,10 +1,3 @@
-# Open Mind
-
-> A voice-first learning tool that checks a student's reasoning, not just their final answer.
-
-**Live Demo:** [Deploy URL on Vercel](https://open-mind.vercel.app) *(replace with your actual link)*
-
----
 
 ## What is Open Mind?
 
