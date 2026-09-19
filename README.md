@@ -1,189 +1,114 @@
-<div align="center">
-
 # Open Mind
 
-**Multimodal reasoning analysis for practice problems**
+> A voice-first learning tool that checks a student's reasoning, not just their final answer.
 
-Evaluating how a student thinks, not just the final number they submit.
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
-[![Vite](https://img.shields.io/badge/Vite-8.3-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![TailwindCSS](https://img.shields.io/badge/Tailwind-4.x-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![Gemini AI](https://img.shields.io/badge/Google%20Gemini-Multimodal-4285F4?logo=google&logoColor=white)](https://aistudio.google.com/)
-
-</div>
+**Live Demo:** [Deploy URL on Vercel](https://open-mind.vercel.app) *(replace with your actual link)*
 
 ---
 
-## Overview
+## What is Open Mind?
 
-Most online assessment tools only check whether the final answer matches an expected string or number. This creates three common problems:
+Standard educational tools grade students solely on their final output: right or wrong. This creates three critical blind spots in learning:
 
-1. **Lucky guesses** are marked correct even when the student has no idea how the problem works.
-2. **Careless slips** (like a basic arithmetic mistake at the final step) are marked as total failures, ignoring sound conceptual reasoning.
-3. **Flawed logic** that happens to land on the correct answer goes completely undetected.
+- **Lucky guesses** get marked correct even when the student has no grasp of the concept.
+- **Careless slips** (like a small arithmetic error in the final step) get marked completely wrong, ignoring otherwise sound logic.
+- **Flawed logic** that happens to land on the correct answer by coincidence goes completely unnoticed.
 
-**Open Mind** changes this by asking students to explain their thought process out loud. The audio explanation is transcribed and evaluated alongside the submitted answer using Gemini multimodal models to diagnose actual understanding.
+**Open Mind** changes this dynamic. Instead of just typing an answer, students talk through their reasoning out loud. Powered by Google Gemini's multimodal audio capabilities, the system evaluates the student's spoken thought process independently of their final answer to diagnose what they actually understand.
+
+---
+
+## How It Works
+
+1. **Practice**: The student is presented with a problem (e.g. algebra, code tracing, or science concepts).
+2. **Explain Out Loud**: The student speaks their thought process while solving the problem. The audio is captured directly via their microphone.
+3. **Multimodal Analysis**: The audio and answer are sent to serverless Gemini endpoints. Gemini transcribes the speech and evaluates the logic against the problem requirements.
+4. **Diagnostic Feedback**: Rather than a binary score, the student receives one of five diagnostic classifications, accompanied by spoken-style tutor feedback and text highlighting.
+
+---
+
+## Diagnostic Classifications
+
+| Classification | What it means | How the system responds |
+|---|---|---|
+| **Solid Understanding** | Correct answer with logically sound reasoning. | Validates mastery and confirms the method. |
+| **Careless Slip** | Conceptually sound reasoning undermined by a mechanical error. | Acknowledges correct understanding while pointing out the arithmetic or formatting slip. |
+| **Misconception** | Invalid logical steps or conceptual misunderstanding. | Identifies where the reasoning derailed and explains the core concept. |
+| **Lucky Guess** | Correct answer, but reasoning is absent, vague, or illogical. | Prompts the student to explain the steps behind their answer. |
+| **Unclear** | Audio was silent, inaudible, or too brief to judge. | Kindly invites the student to re-record with more detail. |
 
 ---
 
 ## Screenshots
 
-<div align="center">
+### 1. Problem View & Spoken Reasoning
+Students solve the problem and record their thought process using the built-in voice recorder.
 
-### Interactive Problem Solving & Voice Recording
-*Solve the problem, record spoken reasoning, or adjust the live transcript.*
+![Problem Practice Screen](images/screenshots/questions.png)
 
-<img src="images/screenshots/questions.png" alt="Question Practice Screen" width="850" />
+### 2. Diagnostic Analysis & Feedback
+Gemini breaks down the reasoning, highlights the relevant part of the question text, and provides targeted tutor feedback.
 
-<br/><br/>
+![Analysis and Review Screen](images/screenshots/review.png)
 
-### Reasoning Breakdown & Diagnostic Feedback
-*Independent assessment of the reasoning path, highlighting relevant question text and explaining misconceptions.*
+### 3. Study Notes & Progress
+Past attempts and diagnosed misconceptions are saved locally so students can review their learning patterns.
 
-<img src="images/screenshots/review.png" alt="Analysis and Review Screen" width="850" />
-
-<br/><br/>
-
-### Session History & Study Notes
-*Track past attempts, identify recurring patterns, and review key takeaways.*
-
-<img src="images/screenshots/notes_section.png" alt="Notes and Progress Screen" width="850" />
-
-</div>
+![Notes and Progress Screen](images/screenshots/notes_section.png)
 
 ---
 
-## Classification Categories
+## Core Features
 
-Every student attempt is analyzed across both the final answer and the reasoning transcript, sorting the result into one of five categories:
-
-| Category | Description | Feedback Approach |
-|---|---|---|
-| **Solid Understanding** | Correct answer backed by valid logical steps. | Confirms mastery and reinforces the correct method. |
-| **Careless Slip** | Sound conceptual reasoning undermined by a mechanical error. | Acknowledges correct logic and isolates the calculation or formatting slip. |
-| **Misconception** | Invalid logical steps or conceptual misunderstanding. | Identifies where the reasoning broke down and explains the concept simply. |
-| **Lucky Guess** | Correct answer, but reasoning is absent, vague, or illogical. | Prompts the student to explain the steps behind the answer. |
-| **Unclear** | Audio was silent, inaudible, or too brief to evaluate. | Invites the student to re-record with a fuller explanation. |
+- **Direct Multimodal Audio Analysis**: Audio recordings (`audio/webm`) are passed directly to Gemini, allowing the model to hear pacing, pauses, and reasoning without relying on separate client-side speech-to-text tools.
+- **Independent Reasoning Evaluation**: The system explicitly prompts Gemini to assess whether the student's stated reasoning logically produces the answer before comparing it to the correct solution.
+- **Model Fallback Cascade**: Implements an automatic fallback chain across Gemini models (`gemini-2.5-flash-lite`, `gemini-3.5-flash`, etc.) so live demonstrations and evaluations aren't interrupted by quota limits or temporary 503 errors.
+- **Secure Serverless Architecture**: The Gemini API key is guarded entirely inside serverless API routes (`/api/*`), preventing client-side leaks.
+- **Local Persistence**: Tracks study sessions and misconception history in browser storage for quick review.
 
 ---
 
-## Features
+## Tech Stack
 
-- **Direct Audio Ingestion**: Records and sends raw audio (`audio/webm`) directly to Gemini multimodal endpoints without requiring client-side speech recognition.
-- **Model Fallback Cascade**: Automatically cycles through compatible Gemini models (`gemini-2.5-flash-lite`, `gemini-3.5-flash`, etc.) to mitigate rate limits and ensure uptime.
-- **Context Highlighting**: Extracts relevant excerpts from problem text directly tied to where the student struggled.
-- **Server-Side Key Protection**: All Gemini requests are executed within serverless endpoints (`/api/*`); API keys are never exposed in client bundles.
-- **Vercel Serverless Ready**: Packaged for zero-maintenance Vercel deployment alongside a static React frontend.
-
----
-
-## Architecture
-
-```text
-open-mind/
-├── api/                     # Vercel serverless functions
-│   ├── _lib/
-│   │   └── gemini.ts        # Shared Gemini client, prompt instructions, and fallback cascade
-│   ├── analyze.ts           # POST /api/analyze (reasoning evaluation)
-│   ├── transcribe.ts        # POST /api/transcribe (audio transcription)
-│   └── health.ts            # GET /api/health (service check)
-├── images/
-│   └── screenshots/         # Documentation previews
-├── src/                     # React 19 application
-│   ├── components/          # UI components
-│   ├── data/                # Sample questions and practice sets
-│   ├── services/            # API client layer
-│   ├── App.tsx              # Root component
-│   └── main.tsx             # Entry point
-├── vercel.json              # Vercel routing and SPA fallback
-├── vite.config.ts           # Build config with local dev API middleware
-└── package.json
-```
+- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, Motion, Lucide Icons
+- **Backend**: Vercel Serverless Functions (`api/analyze.ts`, `api/transcribe.ts`, `api/health.ts`)
+- **AI**: Google Gemini API via `@google/genai` SDK
+- **Hosting**: Vercel (Static SPA + Serverless functions)
 
 ---
 
-## Local Setup
+## Running Locally
 
-### Prerequisites
-- Node.js 18+
-- A [Gemini API Key](https://aistudio.google.com/app/apikey) from Google AI Studio
+If you're judging or testing the project locally:
 
-### 1. Clone and Install
+### 1. Clone & Install
 ```bash
 git clone https://github.com/Omar-Sameh-m/open-mind.git
 cd open-mind
 npm install
 ```
 
-### 2. Configure Environment Variables
-Create a `.env` file from the example:
+### 2. Set Up Environment
+Create a `.env` file in the project root:
 ```bash
 cp .env.example .env
 ```
-
-Add your Gemini API key:
+Add your [Gemini API Key](https://aistudio.google.com/app/apikey):
 ```env
 GEMINI_API_KEY="your_api_key_here"
 ```
 
-### 3. Start the Dev Server
+### 3. Run Development Server
 ```bash
 npm run dev
 ```
+Open `http://localhost:5173` in your browser.
 
-Open `http://localhost:5173` in your browser. The Vite development server automatically routes `/api/*` endpoints to the serverless handlers locally.
-
-To verify your API key is recognized locally:
+You can verify the backend and API key status anytime at:
 ```bash
 curl http://localhost:5173/api/health
 # {"status":"ok","hasApiKey":true}
 ```
-
----
-
-## Deployment to Vercel
-
-### Option 1: Via Vercel Dashboard
-
-1. Push your repository to GitHub.
-2. Go to [vercel.com](https://vercel.com) and click **Add New Project**.
-3. Import the `open-mind` repository.
-4. Vercel automatically detects the Vite configuration:
-   - **Framework Preset**: `Vite`
-   - **Build Command**: `vite build`
-   - **Output Directory**: `dist`
-5. Under **Environment Variables**, add:
-   - `GEMINI_API_KEY`: your Google Gemini API key
-6. Click **Deploy**.
-
-### Option 2: Via Vercel CLI
-
-```bash
-npm install -g vercel
-vercel
-vercel env add GEMINI_API_KEY
-vercel --prod
-```
-
----
-
-## Environment Variables
-
-| Variable | Required | Description | Source |
-|---|---|---|---|
-| `GEMINI_API_KEY` | Yes | Google Gemini API key used for multimodal voice analysis and reasoning classification. | [Google AI Studio](https://aistudio.google.com/app/apikey) |
-
----
-
-## Available Scripts
-
-- `npm run dev` — Starts the local dev server with full API parity.
-- `npm run build` — Builds the static application into `dist/`.
-- `npm run preview` — Previews the built production assets locally.
-- `npm run lint` — Runs TypeScript compiler checks without emitting files.
 
 ---
 
