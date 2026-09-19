@@ -1,0 +1,7 @@
+{
+  "name": "Open Mind",
+  "description": "An education tool that checks a student's reasoning, not just their final answer, using multimodal voice analysis.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
