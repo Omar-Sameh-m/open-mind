@@ -31,8 +31,15 @@ export async function transcribeAudioWithGemini(
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.error || `Audio transcription failed with status ${response.status}`);
+    let errorMsg = `Audio transcription failed with status ${response.status}`;
+    try {
+      const errorData = await response.json();
+      if (errorData?.error) errorMsg = errorData.error;
+    } catch {
+      const text = await response.text().catch(() => '');
+      if (text && text.length < 200) errorMsg = text;
+    }
+    throw new Error(errorMsg);
   }
 
   const data = await response.json();
@@ -78,8 +85,15 @@ export async function analyzeAttemptWithGemini(
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.error || `Analysis request failed with status ${response.status}`);
+    let errorMsg = `Analysis request failed with status ${response.status}`;
+    try {
+      const errorData = await response.json();
+      if (errorData?.error) errorMsg = errorData.error;
+    } catch {
+      const text = await response.text().catch(() => '');
+      if (text && text.length < 200) errorMsg = text;
+    }
+    throw new Error(errorMsg);
   }
 
   const data: AnalyzeResult = await response.json();
