@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { AppData, Attempt, Question, Session } from './types';
 import { STARTER_QUESTIONS } from './data/starterQuestions';
-import { loadAppData, saveSession, clearAllSessions } from './services/storage';
+import { loadAppData, saveSession, clearAllSessions, saveInProgress, loadInProgress, clearInProgress } from './services/storage';
+
 import { analyzeAttemptWithGemini } from './services/geminiService';
 import { speechService } from './services/speechService';
 import { Navbar } from './components/Navbar';
@@ -45,11 +46,34 @@ export default function App() {
   const [isFlipping, setIsFlipping] = useState(false);
   const [flipDirection, setFlipDirection] = useState<'next' | 'prev'>('next');
 
-  // Load saved data on startup
+  // Load saved data on startup; also restore any in-progress session
   useEffect(() => {
     const data = loadAppData();
     setAppData(data);
+
+    const inProgress = loadInProgress();
+    if (inProgress) {
+      setBatchQuestions(inProgress.batchQuestions);
+      setCompletedAttempts(inProgress.completedAttempts);
+      // Resume at the question after the last completed one
+      const nextIdx = inProgress.completedAttempts.length;
+      if (nextIdx < inProgress.batchQuestions.length) {
+        setCurrentQuestionIndex(nextIdx);
+        setCurrentScreen('question');
+      } else {
+        // All questions answered — go to review
+        setCurrentReviewIndex(0);
+        setCurrentScreen('review');
+      }
+    }
   }, []);
+
+  // Persist in-progress state whenever the batch or completed attempts change
+  useEffect(() => {
+    if (batchQuestions.length > 0) {
+      saveInProgress({ batchQuestions, completedAttempts });
+    }
+  }, [batchQuestions, completedAttempts]);
 
   // Stop any ongoing SpeechSynthesis when switching screens
   useEffect(() => {
@@ -82,6 +106,8 @@ export default function App() {
       setCompletedAttempts([]);
       setCurrentReviewIndex(0);
       setAnalyzingError(null);
+      // Clear any previous in-progress session so the new batch starts fresh
+      clearInProgress();
       setCurrentScreen('question');
     });
   };
@@ -186,6 +212,8 @@ export default function App() {
       const updated = saveSession(newSession);
       setAppData(updated);
     }
+    // Session is now finalized — clear the in-progress draft
+    clearInProgress();
     triggerFlip('next', () => {
       setCurrentScreen('notes');
     });
@@ -209,6 +237,10 @@ export default function App() {
         return 'review';
       case 'notes':
         return 'notes';
+      default:
+        // Exhaustiveness guard: if a new Screen value is added, TypeScript
+        // will surface this as an unreachable-code warning.
+        return 'cover';
     }
   };
 

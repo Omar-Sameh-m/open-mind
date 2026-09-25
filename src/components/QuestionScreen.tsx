@@ -5,7 +5,6 @@ import {
   Mic,
   Square,
   RotateCcw,
-  Volume2,
   ArrowRight,
   AlertCircle,
   Sparkles,
@@ -13,9 +12,12 @@ import {
   Edit3,
   Lightbulb,
   FileText,
-  HelpCircle,
   Loader2,
+  Clock,
 } from 'lucide-react';
+
+/** Maximum recording duration in seconds. Keeps the base64 payload well under Vercel's ~4.5 MB body limit. */
+const MAX_RECORDING_SECONDS = 60;
 
 interface QuestionScreenProps {
   question: Question;
@@ -41,6 +43,7 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
   const [micError, setMicError] = useState<string | null>(null);
   const [fallbackReasoning, setFallbackReasoning] = useState('');
   const [useFallbackText, setUseFallbackText] = useState(false);
+  const [autoStoppedAtLimit, setAutoStoppedAtLimit] = useState(false);
 
   // A4: Immediate Transcript Preview & Confirmation
   const [spokenTranscript, setSpokenTranscript] = useState('');
@@ -67,6 +70,7 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
     setMicError(null);
     setFallbackReasoning('');
     setUseFallbackText(false);
+    setAutoStoppedAtLimit(false);
     setSpokenTranscript('');
     setIsTranscribing(false);
     setIsEditingTranscript(false);
@@ -98,6 +102,14 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
     chunksRef.current = [];
 
     try {
+      // Check MediaRecorder API support before requesting mic permission so the
+      // user sees a clear message upfront rather than an unexpected failure later.
+      if (typeof MediaRecorder === 'undefined') {
+        throw new Error(
+          'Audio recording (MediaRecorder) is not supported in this browser. Please use Chrome, Firefox, or Edge.'
+        );
+      }
+
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Audio recording is not supported in this browser.');
       }
@@ -161,9 +173,31 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
       recorder.start(100);
       setIsRecording(true);
       setRecordingDuration(0);
+      setAutoStoppedAtLimit(false);
 
       timerRef.current = setInterval(() => {
-        setRecordingDuration((prev) => prev + 1);
+        setRecordingDuration((prev) => {
+          const next = prev + 1;
+          if (next >= MAX_RECORDING_SECONDS) {
+            // Auto-stop: hit the hard cap
+            setAutoStoppedAtLimit(true);
+            // Trigger stop on next tick so state is consistent
+            setTimeout(() => {
+              if (speechRecognitionRef.current) {
+                try { speechRecognitionRef.current.stop(); } catch { /* ignore */ }
+              }
+              if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop();
+              }
+              setIsRecording(false);
+              if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+              }
+            }, 0);
+          }
+          return next;
+        });
       }, 1000);
 
       // Initialize live speech recognition for real-time text feedback (A4)
@@ -433,6 +467,31 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
                   <span className="text-xs font-bold text-rose-700">
                     Recording live... {formatDuration(recordingDuration)}
                   </span>
+                  <span className="text-xs text-stone-500">
+                    / {formatDuration(MAX_RECORDING_SECONDS)}
+                  </span>
+                </div>
+
+                {/* Recording progress bar */}
+                <div className="w-full mb-2">
+                  <div className="w-full h-1.5 rounded-full bg-stone-200 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        recordingDuration >= MAX_RECORDING_SECONDS * 0.8
+                          ? 'bg-rose-500'
+                          : recordingDuration >= MAX_RECORDING_SECONDS * 0.6
+                          ? 'bg-amber-500'
+                          : 'bg-emerald-500'
+                      }`}
+                      style={{ width: `${Math.min((recordingDuration / MAX_RECORDING_SECONDS) * 100, 100)}%` }}
+                    />
+                  </div>
+                  {recordingDuration >= MAX_RECORDING_SECONDS * 0.8 && (
+                    <p className="text-[10px] text-rose-600 font-semibold mt-0.5 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {MAX_RECORDING_SECONDS - recordingDuration}s remaining — wrap up!
+                    </p>
+                  )}
                 </div>
 
                 {/* Animated sound bars */}
@@ -485,6 +544,16 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
                 No microphone available? Type your verbal reasoning
               </button>
             )}
+          </div>
+        )}
+
+        {/* Auto-stop banner */}
+        {autoStoppedAtLimit && recordedAudioBlob && (
+          <div className="p-2.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900 flex items-start gap-1.5">
+            <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-semibold">Recording auto-stopped at {MAX_RECORDING_SECONDS}s</span> — the maximum limit was reached to keep the upload size manageable. Your audio has been saved.
+            </div>
           </div>
         )}
 

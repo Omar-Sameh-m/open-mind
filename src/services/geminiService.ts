@@ -1,19 +1,32 @@
 import { Question, AnalyzeResult } from '../types';
 
+/**
+ * Efficiently encodes a Blob to a base64 string using the browser's native
+ * FileReader API. This avoids the slow per-byte String.fromCharCode loop that
+ * causes noticeable UI lag for recordings longer than a few seconds.
+ */
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      // dataUrl format: "data:<mime>;base64,<actual_base64>"
+      const commaIdx = dataUrl.indexOf(',');
+      resolve(commaIdx >= 0 ? dataUrl.slice(commaIdx + 1) : dataUrl);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
 export async function transcribeAudioWithGemini(
   audioBlob: Blob
 ): Promise<string> {
   let audioBase64: string | undefined = undefined;
-  let mimeType: string = audioBlob.type || 'audio/webm';
+  const mimeType: string = audioBlob.type || 'audio/webm';
 
   try {
-    const arrayBuffer = await audioBlob.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    let binary = '';
-    for (let i = 0; i < uint8Array.byteLength; i++) {
-      binary += String.fromCharCode(uint8Array[i]);
-    }
-    audioBase64 = btoa(binary);
+    audioBase64 = await blobToBase64(audioBlob);
   } catch (e) {
     console.warn('Failed to encode audio blob for transcription', e);
     return '';
@@ -58,13 +71,7 @@ export async function analyzeAttemptWithGemini(
   if (audioBlob && audioBlob.size > 0) {
     mimeType = audioBlob.type || 'audio/webm';
     try {
-      const arrayBuffer = await audioBlob.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      let binary = '';
-      for (let i = 0; i < uint8Array.byteLength; i++) {
-        binary += String.fromCharCode(uint8Array[i]);
-      }
-      audioBase64 = btoa(binary);
+      audioBase64 = await blobToBase64(audioBlob);
     } catch (e) {
       console.warn('Failed to encode audio blob to base64', e);
     }
