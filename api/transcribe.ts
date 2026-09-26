@@ -1,4 +1,4 @@
-import { getGenAI, callGenAIWithCascade, parseBody, sendJson } from './_shared';
+import { getGenAI, callGenAIWithCascade, parseBody, sendJson } from './shared';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {

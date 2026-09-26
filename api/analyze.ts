@@ -1,5 +1,5 @@
 import { Type } from '@google/genai';
-import { getGenAI, callGenAIWithCascade, parseBody, sendJson } from './_shared';
+import { getGenAI, callGenAIWithCascade, parseBody, sendJson } from './shared';
 
 const SYSTEM_INSTRUCTION = `You are an expert tutor analyzing a student's practice answer. You will receive:
 - The question text
